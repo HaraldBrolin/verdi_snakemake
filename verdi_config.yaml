@@ -1,0 +1,41 @@
+# author: Harald Brolin
+# date: 2018-10-15
+# contact: harald.brolin@wlab.gu.se
+
+# Description:
+# This configfile is intended to be used with the snakefile, this config is
+# specified in the snakefile. This file should be modifed befor each run
+
+
+######################
+#  General settings  #
+######################
+project_name: "2018-10-15_verdi_"
+threads: 5
+
+######################
+#  DADA2 settings  #
+######################
+# More information about the qiime2-dada2 wrapper can be found here:
+# https://docs.qiime2.org/2018.8/plugins/available/dada2/denoise-paired/
+
+# trunc-len-f
+#   Position at which forward read sequences should be truncated.
+#   This truncates the 3' end of the of the input sequences,
+#   reads that are shorter than this value will be discarded. After this
+#   parameter is applied there must still be at least a 20 nucleotide overlap
+#   between the forward and reverse reads. If 0 is provided, no truncation or
+#   length filtering will be performed.
+
+# trim-left-f (Should not be done for 16S)
+#   Position at which forward read sequences should be trimmed.
+#   This trims the 5' end of the input sequences, which will be
+#   the bases that were sequenced in the first cycles.
+
+# The same settings exist for reverse reads, trunc-len-r and trim-left-r
+
+trunc-len-f: 249
+trunc-len-r: 136
+
+trim-left-f: 0
+trim-left-r: 0
