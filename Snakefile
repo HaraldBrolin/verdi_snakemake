@@ -27,7 +27,6 @@ rule all:
 # sample-1,$PWD/some/filepath/sample1_R1.fastq,forward
 # sample-1,$PWD/some/filepath/sample1_R2.fastq,reverse
 
-
 #####
 #####If statement to check if the reads are Paired end or single end?
 #####
@@ -39,19 +38,17 @@ rule paired_end_import:
         "../../data/interim/artifacts/paired_end_demux.qza"
     run:
         shell(
-            "qiime tools import "
-            "--type 'SampleData[PairedEndSequencesWithQuality]' "
-            "--input-path {input} "
-            "--output-path {output} "
-            "--input-format PairedEndFastqManifestPhred33")
+            "qiime tools import"
+            " --type 'SampleData[PairedEndSequencesWithQuality]'"
+            " --input-path {input}"
+            " --output-path {output}"
+            " --input-format PairedEndFastqManifestPhred33")
 
 # After importing the reads we are interested in seeing the quality profeiles of
 # the samples, the script bellow generates a summary of the imported demultiplexed
 # reads. This allows you to determine how many sequences were obtained per sample,
 # and also to get a summary of the distribution of sequence qualities at each
 # position in your sequence data.
-
-
 
 rule quality_profiles:
     input:
@@ -60,9 +57,10 @@ rule quality_profiles:
         "../../data/visualizations/import/quality_profiles.qzv"
     run:
         shell(
-            "qiime demux summarize "
-            "--i-data {input} "
-            "--o-visualization {output}")
+            "qiime demux summarize"
+            " --i-data {input}"
+            " --o-visualization {output}")
+
 
 # !!!!! Important !!!!!
 # Befor filtering look at the output of the quality_profiles (quality_profiles.qzv)
@@ -86,15 +84,16 @@ rule dada2_denoise_paired:
         threads = config['threads']
     run:
         shell(
-            "qiime dada2 denoise-paired "
-            "--i-demultiplexed-seqs {input} "
-            "--p-trunc-len-f {params.truncf} "
-            "--p-trunc-len-r {params.truncr} "
-            "--p-n-threads {threads} "
-            "--output-dir {output}")
+            "qiime dada2 denoise-paired"
+            " --i-demultiplexed-seqs {input}"
+            " --p-trunc-len-f {params.truncf}"
+            " --p-trunc-len-r {params.truncr}"
+            " --p-n-threads {threads}"
+            " --output-dir {output}")
 
-#   Generate a tabular view of Metadata. The output visualization supports
-#   interactive filtering, sorting, and exporting to common file formats.
+
+#  Generate a tabular view of Metadata. The output visualization supports
+#  interactive filtering, sorting, and exporting to common file formats.
 
 rule dada2_metadata_tabulate:
     input:
@@ -103,6 +102,37 @@ rule dada2_metadata_tabulate:
         "../../data/visualizations/dada2/quality_profiles.qzv"
     run:
         shell(
-            "qiime metadata tabulate "
-            "--m-input-file {input} "
-            "--o-visualization {output}"
+            "qiime metadata tabulate"
+            " --m-input-file {input}"
+            " --o-visualization {output}"
+
+
+# The following commands will create visual summaries of the data. The feature_table_summarize
+# command will give you information on how many sequences are associated with
+# each sample and with each feature, histograms of those distributions, and
+# some related summary statistics. The feature_sequences will provide a mapping
+# of feature IDs to sequences, and provide links to easily BLAST each sequence
+# against the NCBI nt database.
+
+rule feature_table_summarize:
+    input:
+        feature_table = "../../data/interim/artifacts/dada2/table.qza"
+    output:
+        "../../data/visualizations/feature_summarize/feature_table_summarize.qzv"
+    run:
+        shell(
+        "qiime feature-table summarize"
+        " --i-table {input.feature_table}"
+        " --o-visualization {output}"
+        " --m-sample-metadata-file sample-metadata.tsv") ############ FORMAT metadata
+
+rule feature_sequences:
+    input:
+        rep_seqs = "../../data/interim/artifacts/dada2/rep-seqs.qza"
+    output:
+        "../../data/visualizations/feature_summarize/feature_sequences.qzv"
+    run:
+        shell(
+        "qiime feature-table tabulate-seqs"
+        " --i-data {input.rep_seqs}"
+        " --o-visualization {output}")
