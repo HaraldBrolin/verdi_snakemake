@@ -13,8 +13,19 @@ configfile: "verdi_config.yaml"
 
 rule all:
     input:
-        directory("../../data/interim/artifacts/dada2"),
-        "../../data/visualizations/quality_profiles.qzv"
+        directory("../../data/interim/artifacts/phylo_tree"),
+        "../../data/visualizations/feature_summarize/feature_sequences.qzv",
+        "../../data/visualizations/feature_summarize/feature_table_summarize.qzv",
+        "../../data/visualizations/dada2/denoising_stats.qzv"
+        #
+        # "../../data/interim/artifacts/paired_end_demux.qza",
+        # "../../data/visualizations/import/quality_profiles.qzv",
+        # directory("../../data/interim/artifacts/dada2"),
+        # "../../data/visualizations/dada2/denoising_stats.qzv",
+        # "../../data/visualizations/feature_summarize/feature_table_summarize.qzv",
+        # "../../data/visualizations/feature_summarize/feature_sequences.qzv",
+        # directory("../../data/interim/artifacts/phylo_tree")
+
 
 #expand("../../data/interim/artifacts/{run}paired_end_demux.qza", run=config['run_name'])
 
@@ -53,6 +64,7 @@ rule paired_end_import:
 rule quality_profiles:
     input:
         rules.paired_end_import.output
+        # "../../data/interim/artifacts/paired_end_demux.qza"
     output:
         "../../data/visualizations/import/quality_profiles.qzv"
     run:
@@ -75,8 +87,12 @@ rule quality_profiles:
 rule dada2_denoise_paired:
     input:
         rules.paired_end_import.output
+        # "../../data/visualizations/import/quality_profiles.qzv"
     output:
-        directory("../../data/interim/artifacts/dada2")
+        table = "../../data/interim/artifacts/dada2/table.qza",
+        representative_seqs = "../../data/interim/artifacts/dada2/representative_sequences.qza",
+        denoising_stats = "../../data/interim/artifacts/dada2/denoising_stats.qza"
+        # directory("../../data/interim/artifacts/dada2")
     params:
         truncf = config['trunc-len-f'],
         truncr = config['trunc-len-r']
@@ -89,7 +105,10 @@ rule dada2_denoise_paired:
             " --p-trunc-len-f {params.truncf}"
             " --p-trunc-len-r {params.truncr}"
             " --p-n-threads {threads}"
-            " --output-dir {output}")
+            " --o-table {output.table}"
+            " --o-representative-sequences {output.representative_seqs}"
+            " --o-denoising-stats {output.denoise_stats}")
+            # " --output-dir {output}")
 
 
 #  Generate a tabular view of Metadata. The output visualization supports
@@ -97,14 +116,15 @@ rule dada2_denoise_paired:
 
 rule dada2_metadata_tabulate:
     input:
-        "../../data/interim/artifacts/dada2/stats-dada2.qza" ########### FIX RHIS
+        rules.dada2_denoise_paired.output.denoising_stats
+        # "../../data/interim/artifacts/dada2/denoising_stats.qza"
     output:
-        "../../data/visualizations/dada2/quality_profiles.qzv"
+        "../../data/visualizations/dada2/denoising_stats.qzv"
     run:
         shell(
             "qiime metadata tabulate"
             " --m-input-file {input}"
-            " --o-visualization {output}"
+            " --o-visualization {output}")
 
 
 # The following commands will create visual summaries of the data. The feature_table_summarize
@@ -116,7 +136,9 @@ rule dada2_metadata_tabulate:
 
 rule feature_table_summarize:
     input:
-        feature_table = "../../data/interim/artifacts/dada2/table.qza"
+        rules.dada2_denoise_paired.output.table,
+        # feature_table = "../../data/interim/artifacts/dada2/table.qza",
+        meta_data = "../../src/data/meta_data_test.txt"
     output:
         "../../data/visualizations/feature_summarize/feature_table_summarize.qzv"
     run:
@@ -124,15 +146,40 @@ rule feature_table_summarize:
         "qiime feature-table summarize"
         " --i-table {input.feature_table}"
         " --o-visualization {output}"
-        " --m-sample-metadata-file sample-metadata.tsv") ############ FORMAT metadata
+        " --m-sample-metadata-file {input.meta_data}") ############ FORMAT metadata
 
 rule feature_sequences:
     input:
-        rep_seqs = "../../data/interim/artifacts/dada2/rep-seqs.qza"
+        representative_seqs = rules.dada2_denoise_paired.output.representative_seqs
+        # rep_seqs = "../../data/interim/artifacts/dada2/representative_sequences.qza"
     output:
         "../../data/visualizations/feature_summarize/feature_sequences.qzv"
     run:
         shell(
         "qiime feature-table tabulate-seqs"
-        " --i-data {input.rep_seqs}"
+        " --i-data {input.representative_seqs}"
         " --o-visualization {output}")
+
+#  The code below is a wrapper for creating a phylogenetic tree. This pipeline
+#  will start by creating a sequence alignment using MAFFT, after which any alignment
+#  columns that are phylogenetically uninformative or ambiguously aligned will be
+#  removed (masked). The resulting masked alignment will be used to infer a
+#  phylogenetic tree and then subsequently  rooted at its midpoint. Output files
+#  from each step of the pipeline will  be saved. This includes both the unmasked
+#  and masked MAFFT alignment from q2-alignment methods, and both the rooted and
+#  unrooted phylogenies from q2-phylogeny methods.
+
+rule generate_tree:
+    input:
+        representative_seqs = rules.dada2_denoise_paired.output.representative_seqs
+        # rep_seqs = "../../data/interim/artifacts/dada2/representative_sequences.qza"
+    output:
+        directory("../../data/interim/artifacts/phylo_tree")
+    threads:
+        threads = config['threads']
+    run:
+        shell(
+        "qiime phylogeny align-to-tree-mafft-fasttree"
+        "  --i-sequences {input.representative_seqs}"
+        "  --p-n-threads {threads}"
+        "  --output-dir {output}")
