@@ -39,3 +39,24 @@ trunc-len-r: 136
 
 trim-left-f: 0
 trim-left-r: 0
+
+
+########################
+#  Diversity settings  #
+########################
+sampling_depth: 70646
+
+
+########################
+#  Rarefaction settings  #
+########################
+max_depth: 50000
+min_depth: 100
+steps: 40
+
+
+########################
+#  Classifier settings  #
+########################
+
+classifier_path: "../../src/tools/gg-13-8-99-515-806-nb-classifier.qza"

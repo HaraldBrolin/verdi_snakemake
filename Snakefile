@@ -4,7 +4,9 @@
 #
 # Description:
 # This scripts is intended to import 16S demultiplexed paired-end read
-# using the Phred33 quality score.
+# using the Phred33 quality score. Later the input will be denoised with DADA2
+# and summary visualizations created. Last a phylogenetic tree is created, using
+# fasttree and MAFFT.
 
 # version: Qiime2 v.2018.8
 
@@ -17,14 +19,6 @@ rule all:
         "../../data/visualizations/feature_summarize/feature_sequences.qzv",
         "../../data/visualizations/feature_summarize/feature_table_summarize.qzv",
         "../../data/visualizations/dada2/denoising_stats.qzv"
-        #
-        # "../../data/interim/artifacts/paired_end_demux.qza",
-        # "../../data/visualizations/import/quality_profiles.qzv",
-        # directory("../../data/interim/artifacts/dada2"),
-        # "../../data/visualizations/dada2/denoising_stats.qzv",
-        # "../../data/visualizations/feature_summarize/feature_table_summarize.qzv",
-        # "../../data/visualizations/feature_summarize/feature_sequences.qzv",
-        # directory("../../data/interim/artifacts/phylo_tree")
 
 
 #expand("../../data/interim/artifacts/{run}paired_end_demux.qza", run=config['run_name'])
@@ -85,20 +79,20 @@ rule quality_profiles:
 # params: more information about the paramters can be found in the configfile
 
 rule dada2_denoise_paired:
-    input:
+    input: 
         rules.paired_end_import.output
         # "../../data/visualizations/import/quality_profiles.qzv"
-    output:
+    output: 
         table = "../../data/interim/artifacts/dada2/table.qza",
         representative_seqs = "../../data/interim/artifacts/dada2/representative_sequences.qza",
         denoising_stats = "../../data/interim/artifacts/dada2/denoising_stats.qza"
         # directory("../../data/interim/artifacts/dada2")
-    params:
+    params: 
         truncf = config['trunc-len-f'],
         truncr = config['trunc-len-r']
-    threads:
+    threads: 
         threads = config['threads']
-    run:
+    run: 
         shell(
             "qiime dada2 denoise-paired"
             " --i-demultiplexed-seqs {input}"
@@ -143,10 +137,10 @@ rule feature_table_summarize:
         "../../data/visualizations/feature_summarize/feature_table_summarize.qzv"
     run:
         shell(
-        "qiime feature-table summarize"
-        " --i-table {input.feature_table}"
-        " --o-visualization {output}"
-        " --m-sample-metadata-file {input.meta_data}") ############ FORMAT metadata
+            "qiime feature-table summarize"
+            " --i-table {input.feature_table}"
+            " --o-visualization {output}"
+            " --m-sample-metadata-file {input.meta_data}") ############ FORMAT metadata
 
 rule feature_sequences:
     input:
@@ -156,9 +150,9 @@ rule feature_sequences:
         "../../data/visualizations/feature_summarize/feature_sequences.qzv"
     run:
         shell(
-        "qiime feature-table tabulate-seqs"
-        " --i-data {input.representative_seqs}"
-        " --o-visualization {output}")
+            "qiime feature-table tabulate-seqs"
+            " --i-data {input.representative_seqs}"
+            " --o-visualization {output}")
 
 #  The code below is a wrapper for creating a phylogenetic tree. This pipeline
 #  will start by creating a sequence alignment using MAFFT, after which any alignment
@@ -179,7 +173,7 @@ rule generate_tree:
         threads = config['threads']
     run:
         shell(
-        "qiime phylogeny align-to-tree-mafft-fasttree"
-        "  --i-sequences {input.representative_seqs}"
-        "  --p-n-threads {threads}"
-        "  --output-dir {output}")
+            "qiime phylogeny align-to-tree-mafft-fasttree"
+            "  --i-sequences {input.representative_seqs}"
+            "  --p-n-threads {threads}"
+            "  --output-dir {output}")
