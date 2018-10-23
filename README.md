@@ -1,3 +1,7 @@
+To create the file structure write: 
+cookiecutter gh:mkrapp/cookiecutter-reproducible-science
+
+
 Remeber to add:
 sample-id,absolute-filepath,direction
 
